@@ -30,7 +30,6 @@ set_output() {
 }
 
 while read _ _ mount _; do
-	echo $mount
 	read -t1 < <(stat -t "$mount")
 	TMP_RESULT=$?
 	set_result $TMP_RESULT

@@ -29,13 +29,22 @@ set_output() {
 	fi
 }
 
-while read _ _ mount _; do
-	echo $mount
-	read -t1 < <(stat -t "$mount")
-	TMP_RESULT=$?
-	set_result $TMP_RESULT
-	set_output $TMP_RESULT "$mount"
-done < <(mount -t nfs)
+MOUNTS=$(mount -t nfs)
+MOUNTS+=$(mount -t nfs3)
+MOUNTS+=$(mount -t nfs4)
+
+if [ -z "$MOUNTS" ]; then
+	OUTPUT="[OK] No nfs mounts"
+	set_result 0
+else
+	while read _ _ mount _; do
+		echo $mount
+		read -t1 < <(stat -t "$mount")
+		TMP_RESULT=$?
+		set_result $TMP_RESULT
+		set_output $TMP_RESULT "$mount"
+	done <<< $MOUNTS
+fi
 
 if [ -n "$ERROR_OUTPUT" ]; then
 	echo -e "$ERROR_OUTPUT"

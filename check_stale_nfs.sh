@@ -38,7 +38,6 @@ if [ -z "$MOUNTS" ]; then
 	set_result 0
 else
 	while read _ _ mount _; do
-		echo $mount
 		read -t1 < <(stat -t "$mount")
 		TMP_RESULT=$?
 		set_result $TMP_RESULT

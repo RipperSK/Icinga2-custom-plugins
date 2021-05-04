@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # For debugging
 #set -x
@@ -10,8 +10,7 @@ EXIT_UNKNOWN=3
 
 OUTPUT=""
 ERROR_OUTPUT=""
-declare -g RESULT
-RESULT=$EXIT_UNKNOWN
+RESULT=$EXIT_OK
 
 set_result() {
 	if [ $1 -gt $RESULT ]; then
@@ -20,36 +19,35 @@ set_result() {
 }
 
 set_output() {
-	if [ $1 -ne 0 ]; then
-		ERROR_OUTPUT+="[CRITICAL] $2 seems to be stale"
-		ERROR_OUTPUT+='\n'
-	else
-		OUTPUT+="[OK] $2 seems to be fine"
-		OUTPUT+='\n'
-	fi
+        if [ $1 -ne 0 ]; then
+                ERROR_OUTPUT+="[CRITICAL] $2 seems to be stale"
+                ERROR_OUTPUT+='\n'
+        else
+                OUTPUT+="[OK] $2 seems to be fine"
+                OUTPUT+='\n'
+        fi
 }
 
-MOUNTS=$(mount -t nfs)
-MOUNTS+=$(mount -t nfs3)
-MOUNTS+=$(mount -t nfs4)
+MOUNTS="$(mount -t nfs;mount -t nfs3;mount -t nfs4)"
+MOUNT_POINTS=$(echo -e "$MOUNTS \n"|grep -v ^$|awk '{print $3}')
 
-if [ -z "$MOUNTS" ]; then
-	OUTPUT="[OK] No nfs mounts"
-	set_result 0
+if [ -z "$MOUNT_POINTS" ]; then
+        OUTPUT="[OK] No nfs mounts"
+        set_result 0
 else
-	while read _ _ mount _; do
-		read -t1 < <(stat -t "$mount")
-		TMP_RESULT=$?
-		set_result $TMP_RESULT
-		set_output $TMP_RESULT "$mount"
-	done <<< $MOUNTS
+        for i in $MOUNT_POINTS;do
+                timeout 1 stat -t "$i" > /dev/null
+                TMP_RESULT=$?
+                set_result $TMP_RESULT
+                set_output $TMP_RESULT "$i"
+        done
 fi
 
 if [ -n "$ERROR_OUTPUT" ]; then
-	echo -e "$ERROR_OUTPUT"
+        echo -e "$ERROR_OUTPUT"
 fi
 if [ -n "$OUTPUT" ]; then
-	echo -e "$OUTPUT"
+        echo -e "$OUTPUT"
 fi
 
 exit $RESULT
